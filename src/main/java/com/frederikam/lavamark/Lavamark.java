@@ -63,17 +63,18 @@ public class Lavamark {
         PLAYER_MANAGER.setItemLoaderThreadPoolSize(100);
         PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
         PLAYER_MANAGER.registerSourceManager(new YoutubeAudioSourceManager());
+        PLAYER_MANAGER.registerSourceManager(source);
         AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager.class);
 
         String jarPath = Lavamark.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         String jarName = jarPath.substring(jarPath.lastIndexOf("/") + 1);
 
         Options options = new Options()
-            .addOption("b", "block", true, "The IPv6 block to use for rotation, specified as CIDR notation. Only applies to YouTube currently.")
-            .addOption("s", "step", true, "The number of players to spawn after two seconds. Be careful when using large values.")
-            .addOption("i", "identifier", true, "The identifier or URL of the track/playlist to use for the benchmark.")
-            .addOption("t", "transcode", false, "Simulate a load by forcing transcoding.")
-            .addOption("h", "help", false, "Displays Lavamark's available options.");
+                .addOption("b", "block", true, "The IPv6 block to use for rotation, specified as CIDR notation. Only applies to YouTube currently.")
+                .addOption("s", "step", true, "The number of players to spawn after two seconds. Be careful when using large values.")
+                .addOption("i", "identifier", true, "The identifier or URL of the track/playlist to use for the benchmark.")
+                .addOption("t", "transcode", false, "Simulate a load by forcing transcoding.")
+                .addOption("h", "help", false, "Displays Lavamark's available options.");
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -105,12 +106,13 @@ public class Lavamark {
             RotatingNanoIpRoutePlanner planner = new RotatingNanoIpRoutePlanner(Collections.singletonList(new Ipv6Block(ipBlock)));
 
             new YoutubeIpRotatorSetup(planner).forConfiguration(ytasm.getHttpInterfaceManager(), false)
-                .withMainDelegateFilter(null)
-                .setup();
+                    .withMainDelegateFilter(null)
+                    .setup();
 
             log.info("IP rotation configured.");
         }
 
+        TimeUnit.SECONDS.sleep(20);
         String identifier = parsed.getOptionValue("identifier", DEFAULT_OPUS);
 
         log.info("Loading AudioTracks from identifier {}", identifier);
@@ -132,6 +134,7 @@ public class Lavamark {
             throw new RuntimeException(e);
         }
 
+
         System.exit(0);
     }
 
@@ -143,7 +146,7 @@ public class Lavamark {
             AudioConsumer.Results results = AudioConsumer.getResults();
             log.info("Players: " + players.size() + ", Null frames: " + results.getLossPercentString());
 
-            if(results.getEndReason() != AudioConsumer.EndReason.NONE) {
+            if (results.getEndReason() != AudioConsumer.EndReason.NONE) {
                 log.info("Benchmark ended. Reason: " + results.getEndReason());
                 break;
             }
@@ -161,7 +164,7 @@ public class Lavamark {
     }
 
     static AudioTrack getTrack() {
-        int rand = (int)(Math.random() * tracks.size());
+        int rand = (int) (Math.random() * tracks.size());
         return tracks.get(rand).makeClone();
     }
 
