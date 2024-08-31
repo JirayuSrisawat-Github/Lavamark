@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 
 public class Lavamark {
 
@@ -50,19 +51,21 @@ public class Lavamark {
     private static final String DEFAULT_OPUS = "https://www.youtube.com/watch?v=M_36UBLkni8";
 
     private static final long INTERVAL = 2 * 1000;
-    private static final long STEP_SIZE = 20;
+    private static final long STEP_SIZE = 50;
     private static final Object WAITER = new Object();
 
     private static List<AudioTrack> tracks;
     private static CopyOnWriteArrayList<Player> players = new CopyOnWriteArrayList<>();
 
     @SuppressWarnings("deprecation")
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
+        YoutubeAudioSourceManager source = new YoutubeAudioSourceManager();
+        source.useOauth2(null, false);
+
         /* Set up the player manager */
         PLAYER_MANAGER.enableGcMonitoring();
         PLAYER_MANAGER.setItemLoaderThreadPoolSize(100);
-        PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
-        PLAYER_MANAGER.registerSourceManager(new YoutubeAudioSourceManager());
+        PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
         PLAYER_MANAGER.registerSourceManager(source);
         AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager.class);
 
