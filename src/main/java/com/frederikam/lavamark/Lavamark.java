@@ -183,6 +183,7 @@ public class Lavamark {
         if (str == null || str.isEmpty()) {
             return false;
         }
+
         try {
             Integer.parseInt(str);
             return true;

@@ -24,20 +24,14 @@
 
 package com.frederikam.lavamark;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AudioConsumer extends Thread {
 
-    private static final Logger log = LoggerFactory.getLogger(AudioConsumer.class);
-
     private final Player player;
-    private final int INTERVAL = 20; // A frame is 20ms
 
-    private static AtomicInteger served = new AtomicInteger();
-    private static AtomicInteger missed = new AtomicInteger();
+    private static final AtomicInteger served = new AtomicInteger();
+    private static final AtomicInteger missed = new AtomicInteger();
     private static EndReason endReason = EndReason.NONE;
     private static boolean running = true;
 
@@ -58,6 +52,8 @@ public class AudioConsumer extends Thread {
                 missed.incrementAndGet();
             }
 
+            // A frame is 20ms
+            int INTERVAL = 20;
             long targetTime = ((start / INTERVAL) + i + 1) * INTERVAL;
             long diff = targetTime - System.currentTimeMillis();
             i++;
@@ -68,13 +64,19 @@ public class AudioConsumer extends Thread {
             }
 
             synchronized (this) {
-                try {
-                    if(diff > 0) {
-                        sleep(diff/2);
-                    }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                if(diff > 0) {
+                    safeSleep(diff/2);
                 }
+            }
+        }
+    }
+
+    private void safeSleep(Long ms) {
+        long currentTimeMillis = System.currentTimeMillis();
+
+        while (true) {
+            if (System.currentTimeMillis() - currentTimeMillis >= ms) {
+                break;
             }
         }
     }
@@ -115,17 +117,13 @@ public class AudioConsumer extends Thread {
         }
 
         public double getLoss() {
-            double frac = 1 - ((double) served) / ((double) (served + missed));
-            frac = Math.floor(frac * 10000) / 10000;
-            frac = frac * 100;
-
-            return frac;
+            return (Math.floor((1 - ((double) served) / ((double) (served + missed))) * 10000) / 10000) * 100;
         }
     }
 
     public enum EndReason {
         NONE,
         CANT_KEEP_UP,
-        MISSED_FRAMES;
+        MISSED_FRAMES
     }
 }
