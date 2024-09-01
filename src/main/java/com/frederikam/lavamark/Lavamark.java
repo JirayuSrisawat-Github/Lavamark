@@ -45,7 +45,7 @@ public class Lavamark {
     private static final Object WAITER = new Object();
 
     private static List<AudioTrack> tracks;
-    private static CopyOnWriteArrayList<Player> players = new CopyOnWriteArrayList<>();
+    private static final CopyOnWriteArrayList<Player> players = new CopyOnWriteArrayList<>();
 
     private static final String DEFAULT_OPUS = "https://soundcloud.com/r2rmoe/r2r-moe-9-lives";
     static final AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
@@ -73,6 +73,7 @@ public class Lavamark {
                 .addOption("i", "identifier", true, "The identifier or URL of the track/playlist to use for the benchmark.")
                 .addOption("t", "transcode", false, "Simulate a load by forcing transcoding.")
                 .addOption("r", "resamplingQuality", true, "Quality of resampling operations. Valid values are LOW, MEDIUM and HIGH, where HIGH uses the most CPU.")
+                .addOption("o", "opusEncoderQuality", true, "Opus encoder quality. Valid values range from 0 to 10, where 10 is best quality but is the most expensive on the CPU.")
                 .addOption("h", "help", false, "Displays Lavamark's available options.");
 
         CommandLineParser parser = new DefaultParser();
@@ -101,6 +102,20 @@ public class Lavamark {
                 PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.MEDIUM);
             } else {
                 PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
+            }
+        }
+
+        if (parsed.hasOption("opusEncodingQuality")) {
+            String value = (parsed.getOptionValue("opusEncodingQuality"));
+
+            if (isNumeric(value)) {
+                int opusEncodingQuality = Integer.parseInt(value);
+
+                if (opusEncodingQuality < 0 || opusEncodingQuality > 10) {
+                    PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(0);
+                } else {
+                    PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(opusEncodingQuality);
+                }
             }
         }
 
@@ -136,15 +151,14 @@ public class Lavamark {
     }
 
     private static void doLoop(long stepSize, boolean transcode) throws InterruptedException {
-        //noinspection InfiniteLoopStatement
         while (true) {
             spawnPlayers(stepSize, transcode);
 
             AudioConsumer.Results results = AudioConsumer.getResults();
-            log.info("Players: " + players.size() + ", Null frames: " + results.getLossPercentString());
+            log.info("Players: {}, Null frames: {}", players.size(), results.getLossPercentString());
 
             if (results.getEndReason() != AudioConsumer.EndReason.NONE) {
-                log.info("Benchmark ended. Reason: " + results.getEndReason());
+                log.info("Benchmark ended. Reason: {}", results.getEndReason());
                 break;
             }
 
@@ -163,5 +177,17 @@ public class Lavamark {
     static AudioTrack getTrack() {
         int rand = (int) (Math.random() * tracks.size());
         return tracks.get(rand).makeClone();
+    }
+
+    public static boolean isNumeric(String str) {
+        if (str == null || str.isEmpty()) {
+            return false;
+        }
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }
