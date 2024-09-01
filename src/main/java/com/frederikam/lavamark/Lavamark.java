@@ -29,51 +29,47 @@ import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
+import com.sedmelluq.discord.lavaplayer.source.soundcloud.*;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sedmelluq.lava.extensions.youtuberotator.YoutubeIpRotatorSetup;
-import com.sedmelluq.lava.extensions.youtuberotator.planner.RotatingNanoIpRoutePlanner;
-import com.sedmelluq.lava.extensions.youtuberotator.tools.ip.Ipv6Block;
-import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
 
 public class Lavamark {
 
-    private static final Logger log = LoggerFactory.getLogger(Lavamark.class);
-
-    static final AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
-    private static final String DEFAULT_OPUS = "https://www.youtube.com/watch?v=M_36UBLkni8";
-
     private static final long INTERVAL = 2 * 1000;
-    private static final long STEP_SIZE = 50;
+    private static final long STEP = 20;
     private static final Object WAITER = new Object();
 
     private static List<AudioTrack> tracks;
     private static CopyOnWriteArrayList<Player> players = new CopyOnWriteArrayList<>();
 
-    @SuppressWarnings("deprecation")
-    public static void main(String[] args) throws InterruptedException {
-        YoutubeAudioSourceManager source = new YoutubeAudioSourceManager();
-        source.useOauth2(null, false);
+    private static final String DEFAULT_OPUS = "https://soundcloud.com/r2rmoe/r2r-moe-9-lives";
+    static final AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
+
+    private static final Logger log = LoggerFactory.getLogger(Lavamark.class);
+
+    public static void main(String[] args) {
+        /* Soundcloud */
+        DefaultSoundCloudDataReader dataReader = new DefaultSoundCloudDataReader();
+        DefaultSoundCloudDataLoader dataLoader = new DefaultSoundCloudDataLoader();
+        DefaultSoundCloudFormatHandler formatHandler = new DefaultSoundCloudFormatHandler();
+        DefaultSoundCloudPlaylistLoader playlistLoader = new DefaultSoundCloudPlaylistLoader(dataLoader,dataReader,formatHandler);
 
         /* Set up the player manager */
         PLAYER_MANAGER.enableGcMonitoring();
         PLAYER_MANAGER.setItemLoaderThreadPoolSize(100);
         PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
-        PLAYER_MANAGER.registerSourceManager(source);
-        AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager.class);
+        PLAYER_MANAGER.registerSourceManager(new SoundCloudAudioSourceManager(true, dataReader, dataLoader, formatHandler, playlistLoader));
+        AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager.class);
 
         String jarPath = Lavamark.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         String jarName = jarPath.substring(jarPath.lastIndexOf("/") + 1);
 
         Options options = new Options()
-                .addOption("b", "block", true, "The IPv6 block to use for rotation, specified as CIDR notation. Only applies to YouTube currently.")
                 .addOption("s", "step", true, "The number of players to spawn after two seconds. Be careful when using large values.")
                 .addOption("i", "identifier", true, "The identifier or URL of the track/playlist to use for the benchmark.")
                 .addOption("t", "transcode", false, "Simulate a load by forcing transcoding.")
@@ -102,28 +98,14 @@ public class Lavamark {
             ConnectorNativeLibLoader.loadConnectorLibrary();
         }
 
-        if (parsed.hasOption("block")) {
-            String ipBlock = parsed.getOptionValue("block");
-
-            YoutubeAudioSourceManager ytasm = PLAYER_MANAGER.source(YoutubeAudioSourceManager.class);
-            RotatingNanoIpRoutePlanner planner = new RotatingNanoIpRoutePlanner(Collections.singletonList(new Ipv6Block(ipBlock)));
-
-            new YoutubeIpRotatorSetup(planner).forConfiguration(ytasm.getHttpInterfaceManager(), false)
-                    .withMainDelegateFilter(null)
-                    .setup();
-
-            log.info("IP rotation configured.");
-        }
-
-        TimeUnit.SECONDS.sleep(20);
         String identifier = parsed.getOptionValue("identifier", DEFAULT_OPUS);
 
         log.info("Loading AudioTracks from identifier {}", identifier);
 
         tracks = new PlaylistLoader().loadTracksSync(identifier);
-        log.info(tracks.size() + " tracks loaded. Beginning benchmark...");
+        log.info("{} tracks loaded. Beginning benchmark...", tracks.size());
 
-        long stepSize = STEP_SIZE;
+        long stepSize = STEP;
 
         if (parsed.hasOption("step")) {
             stepSize = Math.max(1, Long.parseLong(parsed.getOptionValue("step")));
@@ -170,5 +152,4 @@ public class Lavamark {
         int rand = (int) (Math.random() * tracks.size());
         return tracks.get(rand).makeClone();
     }
-
 }
