@@ -155,7 +155,7 @@ public class Lavamark {
             spawnPlayers(stepSize, transcode);
 
             AudioConsumer.Results results = AudioConsumer.getResults();
-            log.info("Players: {}, Null frames: {}", players.size(), results.getLossPercentString());
+            log.info("Players: {}, Null frames: {}, Served: {}, Missed: {}", players.size(), results.getLoss() + "%", results.getServed(), results.getMissed());
 
             if (results.getEndReason() != AudioConsumer.EndReason.NONE) {
                 log.info("Benchmark ended. Reason: {}", results.getEndReason());

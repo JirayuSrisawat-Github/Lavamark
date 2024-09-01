@@ -114,13 +114,12 @@ public class AudioConsumer extends Thread {
             return endReason;
         }
 
-        public String getLossPercentString() {
-            //log.info("Miss " + missed);
-            //log.info("Serv " + served);
+        public double getLoss() {
             double frac = 1 - ((double) served) / ((double) (served + missed));
             frac = Math.floor(frac * 10000) / 10000;
             frac = frac * 100;
-            return frac + "%";
+
+            return frac;
         }
     }
 
