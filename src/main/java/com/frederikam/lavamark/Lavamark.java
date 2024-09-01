@@ -62,7 +62,6 @@ public class Lavamark {
         /* Set up the player manager */
         PLAYER_MANAGER.enableGcMonitoring();
         PLAYER_MANAGER.setItemLoaderThreadPoolSize(100);
-        PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
         PLAYER_MANAGER.registerSourceManager(new SoundCloudAudioSourceManager(true, dataReader, dataLoader, formatHandler, playlistLoader));
         AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager.class);
 
@@ -73,6 +72,7 @@ public class Lavamark {
                 .addOption("s", "step", true, "The number of players to spawn after two seconds. Be careful when using large values.")
                 .addOption("i", "identifier", true, "The identifier or URL of the track/playlist to use for the benchmark.")
                 .addOption("t", "transcode", false, "Simulate a load by forcing transcoding.")
+                .addOption("r", "resamplingQuality", true, "Quality of resampling operations. Valid values are LOW, MEDIUM and HIGH, where HIGH uses the most CPU.")
                 .addOption("h", "help", false, "Displays Lavamark's available options.");
 
         CommandLineParser parser = new DefaultParser();
@@ -90,6 +90,18 @@ public class Lavamark {
         if (parsed.hasOption("help")) {
             formatter.printHelp("java -jar " + jarName, options);
             return;
+        }
+
+        if (parsed.hasOption("resamplingQuality")) {
+            String value = parsed.getOptionValue("resamplingQuality");
+
+            if (value.equals("HIGH")) {
+                PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
+            } else if (value.equals("MEDIUM")) {
+                PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.MEDIUM);
+            } else {
+                PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
+            }
         }
 
         boolean transcode = parsed.hasOption("transcode");
