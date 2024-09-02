@@ -31,10 +31,15 @@ import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.*;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.lava.extensions.youtuberotator.YoutubeIpRotatorSetup;
+import com.sedmelluq.lava.extensions.youtuberotator.planner.RotatingNanoIpRoutePlanner;
+import com.sedmelluq.lava.extensions.youtuberotator.tools.ip.Ipv6Block;
+import dev.lavalink.youtube.YoutubeAudioSourceManager;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -47,33 +52,30 @@ public class Lavamark {
     private static List<AudioTrack> tracks;
     private static final CopyOnWriteArrayList<Player> players = new CopyOnWriteArrayList<>();
 
-    private static final String DEFAULT_OPUS = "https://soundcloud.com/r2rmoe/r2r-moe-9-lives";
+    private static String DEFAULT_OPUS = "https://soundcloud.com/r2rmoe/r2r-moe-9-lives";
     static final AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
 
     private static final Logger log = LoggerFactory.getLogger(Lavamark.class);
 
     public static void main(String[] args) {
         /* Soundcloud */
-        DefaultSoundCloudDataReader dataReader = new DefaultSoundCloudDataReader();
-        DefaultSoundCloudDataLoader dataLoader = new DefaultSoundCloudDataLoader();
-        DefaultSoundCloudFormatHandler formatHandler = new DefaultSoundCloudFormatHandler();
-        DefaultSoundCloudPlaylistLoader playlistLoader = new DefaultSoundCloudPlaylistLoader(dataLoader,dataReader,formatHandler);
 
         /* Set up the player manager */
         PLAYER_MANAGER.enableGcMonitoring();
         PLAYER_MANAGER.setItemLoaderThreadPoolSize(100);
-        PLAYER_MANAGER.registerSourceManager(new SoundCloudAudioSourceManager(true, dataReader, dataLoader, formatHandler, playlistLoader));
-        AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager.class);
+
 
         String jarPath = Lavamark.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         String jarName = jarPath.substring(jarPath.lastIndexOf("/") + 1);
 
         Options options = new Options()
+                .addOption("b", "block", true, "The IPv6 block to use for rotation, specified as CIDR notation. Only applies to YouTube currently.")
                 .addOption("s", "step", true, "The number of players to spawn after two seconds. Be careful when using large values.")
                 .addOption("i", "identifier", true, "The identifier or URL of the track/playlist to use for the benchmark.")
                 .addOption("t", "transcode", false, "Simulate a load by forcing transcoding.")
                 .addOption("r", "resamplingQuality", true, "Quality of resampling operations. Valid values are LOW, MEDIUM and HIGH, where HIGH uses the most CPU.")
                 .addOption("o", "opusEncoderQuality", true, "Opus encoder quality. Valid values range from 0 to 10, where 10 is best quality but is the most expensive on the CPU.")
+                .addOption("so", "source", true, "Which source you want to play from? Valid sources are youtube and soundcloud")
                 .addOption("h", "help", false, "Displays Lavamark's available options.");
 
         CommandLineParser parser = new DefaultParser();
@@ -93,16 +95,62 @@ public class Lavamark {
             return;
         }
 
+        if (parsed.hasOption("source")) {
+            String value = parsed.getOptionValue("source");
+
+            if (value.equals("soundcloud")) {
+                DefaultSoundCloudDataReader dataReader = new DefaultSoundCloudDataReader();
+                DefaultSoundCloudDataLoader dataLoader = new DefaultSoundCloudDataLoader();
+                DefaultSoundCloudFormatHandler formatHandler = new DefaultSoundCloudFormatHandler();
+                DefaultSoundCloudPlaylistLoader playlistLoader = new DefaultSoundCloudPlaylistLoader(dataLoader, dataReader, formatHandler);
+
+                PLAYER_MANAGER.registerSourceManager(new SoundCloudAudioSourceManager(true, dataReader, dataLoader, formatHandler, playlistLoader));
+                AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager.class);
+            } else if (value.equals("youtube")) {
+                PLAYER_MANAGER.registerSourceManager(new YoutubeAudioSourceManager());
+                AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, dev.lavalink.youtube.YoutubeAudioSourceManager.class);
+                DEFAULT_OPUS = "https://www.youtube.com/watch?v=M_36UBLkni8";
+
+                if (parsed.hasOption("block")) {
+                    String ipBlock = parsed.getOptionValue("block");
+
+                    YoutubeAudioSourceManager youtubeAudioSourceManager = PLAYER_MANAGER.source(YoutubeAudioSourceManager.class);
+                    RotatingNanoIpRoutePlanner planner = new RotatingNanoIpRoutePlanner(Collections.singletonList(new Ipv6Block(ipBlock)));
+
+                    new YoutubeIpRotatorSetup(planner).forConfiguration(youtubeAudioSourceManager.getHttpInterfaceManager(), false)
+                            .withMainDelegateFilter(null)
+                            .setup();
+
+                    log.info("IP rotation configured.");
+                }
+            } else {
+                DefaultSoundCloudDataReader dataReader = new DefaultSoundCloudDataReader();
+                DefaultSoundCloudDataLoader dataLoader = new DefaultSoundCloudDataLoader();
+                DefaultSoundCloudFormatHandler formatHandler = new DefaultSoundCloudFormatHandler();
+                DefaultSoundCloudPlaylistLoader playlistLoader = new DefaultSoundCloudPlaylistLoader(dataLoader, dataReader, formatHandler);
+
+                PLAYER_MANAGER.registerSourceManager(new SoundCloudAudioSourceManager(true, dataReader, dataLoader, formatHandler, playlistLoader));
+                AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager.class);
+            }
+        } else {
+            DefaultSoundCloudDataReader dataReader = new DefaultSoundCloudDataReader();
+            DefaultSoundCloudDataLoader dataLoader = new DefaultSoundCloudDataLoader();
+            DefaultSoundCloudFormatHandler formatHandler = new DefaultSoundCloudFormatHandler();
+            DefaultSoundCloudPlaylistLoader playlistLoader = new DefaultSoundCloudPlaylistLoader(dataLoader, dataReader, formatHandler);
+
+            PLAYER_MANAGER.registerSourceManager(new SoundCloudAudioSourceManager(true, dataReader, dataLoader, formatHandler, playlistLoader));
+            AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager.class);
+        }
+
         if (parsed.hasOption("resamplingQuality")) {
             String value = parsed.getOptionValue("resamplingQuality");
 
-            if (value.equals("HIGH")) {
+            if (value.equals("HIGH"))
                 PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.HIGH);
-            } else if (value.equals("MEDIUM")) {
+            else if (value.equals("MEDIUM"))
                 PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.MEDIUM);
-            } else {
+            else
                 PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
-            }
         }
 
         if (parsed.hasOption("opusEncodingQuality")) {
@@ -111,19 +159,18 @@ public class Lavamark {
             if (isNumeric(value)) {
                 int opusEncodingQuality = Integer.parseInt(value);
 
-                if (opusEncodingQuality < 0 || opusEncodingQuality > 10) {
+                if (opusEncodingQuality < 0 || opusEncodingQuality > 10)
                     PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(0);
-                } else {
+                else
                     PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(opusEncodingQuality);
-                }
             }
-        }
+        } else PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(0);
 
         boolean transcode = parsed.hasOption("transcode");
 
-        if (transcode) {
+        if (transcode)
             ConnectorNativeLibLoader.loadConnectorLibrary();
-        }
+
 
         String identifier = parsed.getOptionValue("identifier", DEFAULT_OPUS);
 
