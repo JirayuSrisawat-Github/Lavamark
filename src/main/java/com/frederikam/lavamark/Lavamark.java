@@ -75,7 +75,7 @@ public class Lavamark {
                 .addOption("t", "transcode", false, "Simulate a load by forcing transcoding.")
                 .addOption("r", "resamplingQuality", true, "Quality of resampling operations. Valid values are LOW, MEDIUM and HIGH, where HIGH uses the most CPU.")
                 .addOption("o", "opusEncoderQuality", true, "Opus encoder quality. Valid values range from 0 to 10, where 10 is best quality but is the most expensive on the CPU.")
-                .addOption("so", "source", true, "Which source you want to play from? Valid sources are youtube and soundcloud")
+                .addOption("so", "source", true, "Which source you want to test from? Valid sources are youtube and soundcloud")
                 .addOption("h", "help", false, "Displays Lavamark's available options.");
 
         CommandLineParser parser = new DefaultParser();

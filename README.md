@@ -24,3 +24,4 @@ Application options are specified after the JAR name.
 | `-t`/`--transcode`          | Simulate a load by forcing transcoding.                                                                               |
 | `-r`/`--resamplingQuality`  | Quality of resampling operations. Valid values are LOW, MEDIUM and HIGH, where HIGH uses the most CPU.                |
 | `-o`/`--opusEncoderQuality` | Opus encoder quality. Valid values range from 0 to 10, where 10 is best quality but is the most expensive on the CPU. |
+| `-so`/`--source`            | Which source you want to test from? Valid sources are youtube and soundcloud                                          |
