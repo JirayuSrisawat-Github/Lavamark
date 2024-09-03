@@ -151,7 +151,8 @@ public class Lavamark {
                 PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.MEDIUM);
             else
                 PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
-        }
+        } else
+            PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
 
         if (parsed.hasOption("opusEncodingQuality")) {
             String value = (parsed.getOptionValue("opusEncodingQuality"));
@@ -164,13 +165,13 @@ public class Lavamark {
                 else
                     PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(opusEncodingQuality);
             }
-        } else PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(0);
+        } else
+            PLAYER_MANAGER.getConfiguration().setOpusEncodingQuality(0);
 
         boolean transcode = parsed.hasOption("transcode");
 
         if (transcode)
             ConnectorNativeLibLoader.loadConnectorLibrary();
-
 
         String identifier = parsed.getOptionValue("identifier", DEFAULT_OPUS);
 
