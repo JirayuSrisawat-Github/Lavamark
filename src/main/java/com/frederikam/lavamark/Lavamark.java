@@ -29,6 +29,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioConfiguration;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
+import com.sedmelluq.discord.lavaplayer.source.soundcloud.*;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.lava.extensions.youtuberotator.YoutubeIpRotatorSetup;
 import com.sedmelluq.lava.extensions.youtuberotator.planner.RotatingNanoIpRoutePlanner;
@@ -47,9 +48,9 @@ public class Lavamark {
     private static final Logger log = LoggerFactory.getLogger(Lavamark.class);
 
     static final AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
-    private static final String DEFAULT_OPUS = "https://www.youtube.com/watch?v=M_36UBLkni8";
+    private static final String DEFAULT_OPUS = "https://soundcloud.com/r2rmoe/r2r-moe-9-lives";
 
-    private static final long INTERVAL = 2 * 1000;
+    private static final long INTERVAL = 21000;
     private static final long STEP_SIZE = 20;
     private static final Object WAITER = new Object();
 
@@ -62,8 +63,14 @@ public class Lavamark {
         PLAYER_MANAGER.enableGcMonitoring();
         PLAYER_MANAGER.setItemLoaderThreadPoolSize(100);
         PLAYER_MANAGER.getConfiguration().setResamplingQuality(AudioConfiguration.ResamplingQuality.LOW);
-        PLAYER_MANAGER.registerSourceManager(new YoutubeAudioSourceManager());
-        AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager.class);
+
+        DefaultSoundCloudDataReader dataReader = new DefaultSoundCloudDataReader();
+        DefaultSoundCloudDataLoader dataLoader = new DefaultSoundCloudDataLoader();
+        DefaultSoundCloudFormatHandler formatHandler = new DefaultSoundCloudFormatHandler();
+        DefaultSoundCloudPlaylistLoader playlistLoader = new DefaultSoundCloudPlaylistLoader(dataLoader, dataReader, formatHandler);
+
+        PLAYER_MANAGER.registerSourceManager(new SoundCloudAudioSourceManager(true, dataReader, dataLoader, formatHandler, playlistLoader));
+        AudioSourceManagers.registerRemoteSources(PLAYER_MANAGER, com.sedmelluq.discord.lavaplayer.source.soundcloud.SoundCloudAudioSourceManager.class);
 
         String jarPath = Lavamark.class.getProtectionDomain().getCodeSource().getLocation().getPath();
         String jarName = jarPath.substring(jarPath.lastIndexOf("/") + 1);
