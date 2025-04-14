@@ -50,7 +50,7 @@ public class Lavamark {
     static final AudioPlayerManager PLAYER_MANAGER = new DefaultAudioPlayerManager();
     private static final String DEFAULT_OPUS = "https://soundcloud.com/r2rmoe/r2r-moe-9-lives";
 
-    private static final long INTERVAL = 21000;
+    private static final long INTERVAL = 2000;
     private static final long STEP_SIZE = 20;
     private static final Object WAITER = new Object();
 
